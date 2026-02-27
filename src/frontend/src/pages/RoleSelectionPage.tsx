@@ -10,6 +10,7 @@ interface RoleSelectionPageProps {
 }
 
 export function RoleSelectionPage({ onRoleSelected }: RoleSelectionPageProps) {
+  // eslint-disable-next-line custom/require-internet-identity-provider
   const { identity } = useInternetIdentity();
   const [selectedRole, setSelectedRole] = useState<"owner" | "renter" | null>(null);
   const assignRole = useAssignRoleMutation();

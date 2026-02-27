@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
-import { PropertyListing, PropertyType, UserRole } from "../backend.d";
+import { ExtendedPropertyListing, PropertyType, UserRole } from "../backend.d";
 import type { Principal } from "@icp-sdk/core/principal";
 
 export function useGetAllListings() {
   const { actor, isFetching } = useActor();
-  return useQuery<PropertyListing[]>({
+  return useQuery<ExtendedPropertyListing[]>({
     queryKey: ["listings"],
     queryFn: async () => {
       if (!actor) return [];
@@ -18,7 +18,7 @@ export function useGetAllListings() {
 
 export function useGetListingById(id: bigint | null) {
   const { actor, isFetching } = useActor();
-  return useQuery<PropertyListing | null>({
+  return useQuery<ExtendedPropertyListing | null>({
     queryKey: ["listing", id?.toString()],
     queryFn: async () => {
       if (!actor || id === null) return null;
@@ -30,7 +30,7 @@ export function useGetListingById(id: bigint | null) {
 
 export function useSearchByMaxRent(maxRent: bigint | null) {
   const { actor, isFetching } = useActor();
-  return useQuery<PropertyListing[]>({
+  return useQuery<ExtendedPropertyListing[]>({
     queryKey: ["listings", "maxRent", maxRent?.toString()],
     queryFn: async () => {
       if (!actor || maxRent === null) return [];
@@ -42,7 +42,7 @@ export function useSearchByMaxRent(maxRent: bigint | null) {
 
 export function useSearchByType(propertyType: PropertyType | null) {
   const { actor, isFetching } = useActor();
-  return useQuery<PropertyListing[]>({
+  return useQuery<ExtendedPropertyListing[]>({
     queryKey: ["listings", "type", propertyType],
     queryFn: async () => {
       if (!actor || propertyType === null) return [];
@@ -57,7 +57,7 @@ export function useSearchByTypeAndMaxRent(
   maxRent: bigint | null
 ) {
   const { actor, isFetching } = useActor();
-  return useQuery<PropertyListing[]>({
+  return useQuery<ExtendedPropertyListing[]>({
     queryKey: [
       "listings",
       "typeAndRent",
@@ -121,6 +121,10 @@ export function useCreateListingMutation() {
       bathrooms: bigint;
       amenities: string[];
       imageBlobIds: string[];
+      deposit: bigint | null;
+      bhkType: string | null;
+      landmark: string | null;
+      bestFor: string | null;
     }) => {
       if (!actor) throw new Error("Actor not available");
       return actor.createPropertyListing(
@@ -133,7 +137,11 @@ export function useCreateListingMutation() {
         params.bedrooms,
         params.bathrooms,
         params.amenities,
-        params.imageBlobIds
+        params.imageBlobIds,
+        params.deposit,
+        params.bhkType,
+        params.landmark,
+        params.bestFor
       );
     },
     onSuccess: () => {

@@ -31,7 +31,7 @@ export const PropertyType = IDL.Variant({
   'apartment' : IDL.Null,
 });
 export const Time = IDL.Int;
-export const PropertyListing = IDL.Record({
+export const ExtendedPropertyListing = IDL.Record({
   'id' : IDL.Nat,
   'title' : IDL.Text,
   'propertyType' : PropertyType,
@@ -40,12 +40,16 @@ export const PropertyListing = IDL.Record({
   'owner' : IDL.Principal,
   'createdAt' : Time,
   'ownerPhone' : IDL.Text,
+  'bhkType' : IDL.Opt(IDL.Text),
   'description' : IDL.Text,
+  'deposit' : IDL.Opt(IDL.Nat),
   'amenities' : IDL.Vec(IDL.Text),
   'available' : IDL.Bool,
   'address' : IDL.Text,
+  'landmark' : IDL.Opt(IDL.Text),
   'monthlyRent' : IDL.Nat,
   'bathrooms' : IDL.Nat,
+  'bestFor' : IDL.Opt(IDL.Text),
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 
@@ -90,6 +94,10 @@ export const idlService = IDL.Service({
         IDL.Nat,
         IDL.Vec(IDL.Text),
         IDL.Vec(IDL.Text),
+        IDL.Opt(IDL.Nat),
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
       ],
       [IDL.Nat],
       [],
@@ -97,12 +105,16 @@ export const idlService = IDL.Service({
   'deletePropertyListing' : IDL.Func([IDL.Nat], [], []),
   'getAllAvailableListings' : IDL.Func(
       [],
-      [IDL.Vec(PropertyListing)],
+      [IDL.Vec(ExtendedPropertyListing)],
       ['query'],
     ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getListingById' : IDL.Func([IDL.Nat], [IDL.Opt(PropertyListing)], ['query']),
+  'getListingById' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Opt(ExtendedPropertyListing)],
+      ['query'],
+    ),
   'getTotalListingsCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -111,19 +123,29 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'searchListingsAdvanced' : IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Nat, IDL.Opt(PropertyType)],
+      [IDL.Vec(ExtendedPropertyListing)],
+      ['query'],
+    ),
+  'searchListingsByArea' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(ExtendedPropertyListing)],
+      ['query'],
+    ),
   'searchListingsByMaxRent' : IDL.Func(
       [IDL.Nat],
-      [IDL.Vec(PropertyListing)],
+      [IDL.Vec(ExtendedPropertyListing)],
       ['query'],
     ),
   'searchListingsByType' : IDL.Func(
       [PropertyType],
-      [IDL.Vec(PropertyListing)],
+      [IDL.Vec(ExtendedPropertyListing)],
       ['query'],
     ),
   'searchListingsByTypeAndMaxRent' : IDL.Func(
       [PropertyType, IDL.Nat],
-      [IDL.Vec(PropertyListing)],
+      [IDL.Vec(ExtendedPropertyListing)],
       ['query'],
     ),
 });
@@ -154,7 +176,7 @@ export const idlFactory = ({ IDL }) => {
     'apartment' : IDL.Null,
   });
   const Time = IDL.Int;
-  const PropertyListing = IDL.Record({
+  const ExtendedPropertyListing = IDL.Record({
     'id' : IDL.Nat,
     'title' : IDL.Text,
     'propertyType' : PropertyType,
@@ -163,12 +185,16 @@ export const idlFactory = ({ IDL }) => {
     'owner' : IDL.Principal,
     'createdAt' : Time,
     'ownerPhone' : IDL.Text,
+    'bhkType' : IDL.Opt(IDL.Text),
     'description' : IDL.Text,
+    'deposit' : IDL.Opt(IDL.Nat),
     'amenities' : IDL.Vec(IDL.Text),
     'available' : IDL.Bool,
     'address' : IDL.Text,
+    'landmark' : IDL.Opt(IDL.Text),
     'monthlyRent' : IDL.Nat,
     'bathrooms' : IDL.Nat,
+    'bestFor' : IDL.Opt(IDL.Text),
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   
@@ -213,6 +239,10 @@ export const idlFactory = ({ IDL }) => {
           IDL.Nat,
           IDL.Vec(IDL.Text),
           IDL.Vec(IDL.Text),
+          IDL.Opt(IDL.Nat),
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
         ],
         [IDL.Nat],
         [],
@@ -220,14 +250,14 @@ export const idlFactory = ({ IDL }) => {
     'deletePropertyListing' : IDL.Func([IDL.Nat], [], []),
     'getAllAvailableListings' : IDL.Func(
         [],
-        [IDL.Vec(PropertyListing)],
+        [IDL.Vec(ExtendedPropertyListing)],
         ['query'],
       ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getListingById' : IDL.Func(
         [IDL.Nat],
-        [IDL.Opt(PropertyListing)],
+        [IDL.Opt(ExtendedPropertyListing)],
         ['query'],
       ),
     'getTotalListingsCount' : IDL.Func([], [IDL.Nat], ['query']),
@@ -238,19 +268,29 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'searchListingsAdvanced' : IDL.Func(
+        [IDL.Text, IDL.Nat, IDL.Nat, IDL.Opt(PropertyType)],
+        [IDL.Vec(ExtendedPropertyListing)],
+        ['query'],
+      ),
+    'searchListingsByArea' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(ExtendedPropertyListing)],
+        ['query'],
+      ),
     'searchListingsByMaxRent' : IDL.Func(
         [IDL.Nat],
-        [IDL.Vec(PropertyListing)],
+        [IDL.Vec(ExtendedPropertyListing)],
         ['query'],
       ),
     'searchListingsByType' : IDL.Func(
         [PropertyType],
-        [IDL.Vec(PropertyListing)],
+        [IDL.Vec(ExtendedPropertyListing)],
         ['query'],
       ),
     'searchListingsByTypeAndMaxRent' : IDL.Func(
         [PropertyType, IDL.Nat],
-        [IDL.Vec(PropertyListing)],
+        [IDL.Vec(ExtendedPropertyListing)],
         ['query'],
       ),
   });

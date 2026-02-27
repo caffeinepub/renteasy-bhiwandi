@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   createRouter,
   createRoute,
@@ -13,49 +12,17 @@ import { Footer } from "./components/Footer";
 import { BrowsePage } from "./pages/BrowsePage";
 import { PropertyDetailPage } from "./pages/PropertyDetailPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { RoleSelectionPage } from "./pages/RoleSelectionPage";
-import { useInternetIdentity } from "./hooks/useInternetIdentity";
-import { useGetCallerRole } from "./hooks/useQueries";
-import { UserRole } from "./backend.d";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { useFirebaseAuth } from "./hooks/useFirebaseAuth";
 import { Loader2 } from "lucide-react";
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 
 function AppShell() {
-  const [userRoleChoice, setUserRoleChoice] = useState<"owner" | "renter" | null>(() => {
-    const stored = localStorage.getItem("userRoleChoice");
-    if (stored === "owner" || stored === "renter") return stored;
-    return null;
-  });
+  const { loading } = useFirebaseAuth();
 
-  const { identity, isInitializing } = useInternetIdentity();
-  const isAuthenticated = !!identity;
-
-  const { data: callerRole, isLoading: roleLoading } = useGetCallerRole();
-
-  // Sync: if user already has role "user" in backend and localStorage choice, keep it
-  // If user logs out, clear role choice
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setUserRoleChoice(null);
-    }
-  }, [isAuthenticated]);
-
-  // Check backend role: if guest and stored choice exists, also store choice again
-  useEffect(() => {
-    if (isAuthenticated && callerRole === UserRole.user) {
-      const stored = localStorage.getItem("userRoleChoice");
-      if (stored === "owner" || stored === "renter") {
-        setUserRoleChoice(stored);
-      }
-    }
-  }, [isAuthenticated, callerRole]);
-
-  const handleRoleSelected = (role: "owner" | "renter") => {
-    setUserRoleChoice(role);
-  };
-
-  if (isInitializing) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -68,19 +35,9 @@ function AppShell() {
     );
   }
 
-  // Show role selection if authenticated but no role chosen yet
-  if (isAuthenticated && !roleLoading && (callerRole === UserRole.guest || callerRole === undefined) && !userRoleChoice) {
-    return (
-      <>
-        <RoleSelectionPage onRoleSelected={handleRoleSelected} />
-        <Toaster richColors />
-      </>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
-      <Header userRoleChoice={userRoleChoice} />
+      <Header />
       <Outlet />
       <Footer />
       <Toaster richColors />
@@ -91,48 +48,68 @@ function AppShell() {
 // ─── Dashboard Guard ──────────────────────────────────────────────────────────
 
 function DashboardGuard() {
-  const { identity } = useInternetIdentity();
-  const userRoleChoice = localStorage.getItem("userRoleChoice");
-
-  if (!identity) {
-    return <Navigate to="/" />;
-  }
-
-  if (userRoleChoice !== "owner") {
-    return <Navigate to="/" />;
-  }
-
+  const { currentUser, userProfile, loading } = useFirebaseAuth();
+  if (loading) return null;
+  if (!currentUser) return <Navigate to="/login" />;
+  if (userProfile?.role !== "owner") return <Navigate to="/" />;
   return <DashboardPage />;
+}
+
+// ─── Auth-Only Shell (no Header/Footer for login/register) ───────────────────
+
+function AuthOnlyShell() {
+  return (
+    <>
+      <Outlet />
+      <Toaster richColors />
+    </>
+  );
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-const rootRoute = createRootRoute({
+const rootRoute = createRootRoute({ component: AuthOnlyShell });
+
+const mainLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "main",
   component: AppShell,
 });
 
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/",
   component: BrowsePage,
 });
 
 const propertyRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/property/$id",
   component: PropertyDetailPage,
 });
 
 const dashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/dashboard",
   component: DashboardGuard,
 });
 
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/login",
+  component: LoginPage,
+});
+
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/register",
+  component: RegisterPage,
+});
+
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  propertyRoute,
-  dashboardRoute,
+  mainLayoutRoute.addChildren([indexRoute, propertyRoute, dashboardRoute]),
+  loginRoute,
+  registerRoute,
 ]);
 
 const router = createRouter({ routeTree });

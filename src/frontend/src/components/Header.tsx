@@ -1,47 +1,45 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, LayoutDashboard, LogIn, LogOut, Loader2, Menu, X } from "lucide-react";
+import {
+  Home,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Menu,
+  X,
+  UserPlus,
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
-interface HeaderProps {
-  userRoleChoice: "owner" | "renter" | null;
-}
-
-export function Header({ userRoleChoice }: HeaderProps) {
-  const { login, clear, loginStatus, identity } = useInternetIdentity();
-  const queryClient = useQueryClient();
+export function Header() {
+  const { currentUser, userProfile, logout } = useFirebaseAuth();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
-  const isAuthenticated = !!identity;
-  const isLoggingIn = loginStatus === "logging-in";
+  const isAuthenticated = !!currentUser;
+  const isOwner = userProfile?.role === "owner";
 
-  const handleAuth = async () => {
-    if (isAuthenticated) {
-      await clear();
-      queryClient.clear();
-      localStorage.removeItem("userRoleChoice");
-    } else {
-      try {
-        await login();
-      } catch (error: unknown) {
-        const e = error as Error;
-        if (e.message === "User is already authenticated") {
-          await clear();
-          setTimeout(() => login(), 300);
-        }
-      }
-    }
+  const handleLogout = async () => {
+    await logout();
+    toast.success("Logged out successfully.");
+    navigate({ to: "/" });
   };
 
   const navLinks = [
     { to: "/", label: "Browse", icon: <Home className="h-4 w-4" /> },
-    ...(isAuthenticated && userRoleChoice === "owner"
-      ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> }]
+    ...(isAuthenticated && isOwner
+      ? [
+          {
+            to: "/dashboard",
+            label: "Dashboard",
+            icon: <LayoutDashboard className="h-4 w-4" />,
+          },
+        ]
       : []),
   ];
 
@@ -85,42 +83,57 @@ export function Header({ userRoleChoice }: HeaderProps) {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
-            {isAuthenticated && userRoleChoice && (
+            {isAuthenticated && userProfile && (
               <Badge
                 variant="outline"
                 className={`hidden sm:flex text-xs font-body font-medium capitalize border ${
-                  userRoleChoice === "owner"
+                  userProfile.role === "owner"
                     ? "bg-primary/10 text-primary border-primary/20"
                     : "bg-accent/10 text-accent border-accent/20"
                 }`}
               >
-                {userRoleChoice}
+                {userProfile.role}
               </Badge>
             )}
+            {isAuthenticated && userProfile?.name && (
+              <span className="hidden sm:block text-sm font-body text-muted-foreground truncate max-w-[120px]">
+                {userProfile.name}
+              </span>
+            )}
 
-            <Button
-              variant={isAuthenticated ? "outline" : "default"}
-              size="sm"
-              onClick={handleAuth}
-              disabled={isLoggingIn}
-              className={`font-body font-medium ${
-                !isAuthenticated ? "hero-gradient text-white border-0 hover:opacity-90" : ""
-              }`}
-            >
-              {isLoggingIn ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isAuthenticated ? (
-                <>
-                  <LogOut className="h-4 w-4 mr-1.5" />
-                  Logout
-                </>
-              ) : (
-                <>
-                  <LogIn className="h-4 w-4 mr-1.5" />
-                  Login
-                </>
-              )}
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="font-body font-medium"
+              >
+                <LogOut className="h-4 w-4 mr-1.5" />
+                Logout
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link to="/login">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-body font-medium"
+                  >
+                    <LogIn className="h-4 w-4 mr-1.5" />
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button
+                    size="sm"
+                    className="hero-gradient text-white border-0 hover:opacity-90 font-body font-medium"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1.5" />
+                    Register
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             {/* Mobile menu toggle */}
             <button
@@ -129,7 +142,11 @@ export function Header({ userRoleChoice }: HeaderProps) {
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </button>
           </div>
         </div>
@@ -152,6 +169,24 @@ export function Header({ userRoleChoice }: HeaderProps) {
                 {link.label}
               </Link>
             ))}
+            {!isAuthenticated && (
+              <>
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <LogIn className="h-4 w-4" /> Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body font-medium text-primary hover:bg-primary/10"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <UserPlus className="h-4 w-4" /> Register
+                </Link>
+              </>
+            )}
           </nav>
         )}
       </div>

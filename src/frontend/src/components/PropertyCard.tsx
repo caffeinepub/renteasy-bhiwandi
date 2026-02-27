@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Bed, Bath, MapPin, IndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { PropertyListing, PropertyType } from "../backend.d";
+import { ExtendedPropertyListing, PropertyType } from "../backend.d";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/600x400?text=No+Image";
 
@@ -20,7 +20,7 @@ const TYPE_COLORS: Record<PropertyType, string> = {
 };
 
 interface PropertyCardProps {
-  listing: PropertyListing;
+  listing: ExtendedPropertyListing;
   getImageUrl: (blobId: string) => string;
   staggerIndex?: number;
 }

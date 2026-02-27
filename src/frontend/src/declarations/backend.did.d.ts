@@ -10,7 +10,7 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface PropertyListing {
+export interface ExtendedPropertyListing {
   'id' : bigint,
   'title' : string,
   'propertyType' : PropertyType,
@@ -19,12 +19,16 @@ export interface PropertyListing {
   'owner' : Principal,
   'createdAt' : Time,
   'ownerPhone' : string,
+  'bhkType' : [] | [string],
   'description' : string,
+  'deposit' : [] | [bigint],
   'amenities' : Array<string>,
   'available' : boolean,
   'address' : string,
+  'landmark' : [] | [string],
   'monthlyRent' : bigint,
   'bathrooms' : bigint,
+  'bestFor' : [] | [string],
 }
 export type PropertyType = { 'pg' : null } |
   { 'house' : null } |
@@ -76,23 +80,41 @@ export interface _SERVICE {
       bigint,
       Array<string>,
       Array<string>,
+      [] | [bigint],
+      [] | [string],
+      [] | [string],
+      [] | [string],
     ],
     bigint
   >,
   'deletePropertyListing' : ActorMethod<[bigint], undefined>,
-  'getAllAvailableListings' : ActorMethod<[], Array<PropertyListing>>,
+  'getAllAvailableListings' : ActorMethod<[], Array<ExtendedPropertyListing>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getListingById' : ActorMethod<[bigint], [] | [PropertyListing]>,
+  'getListingById' : ActorMethod<[bigint], [] | [ExtendedPropertyListing]>,
   'getTotalListingsCount' : ActorMethod<[], bigint>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'searchListingsByMaxRent' : ActorMethod<[bigint], Array<PropertyListing>>,
-  'searchListingsByType' : ActorMethod<[PropertyType], Array<PropertyListing>>,
+  'searchListingsAdvanced' : ActorMethod<
+    [string, bigint, bigint, [] | [PropertyType]],
+    Array<ExtendedPropertyListing>
+  >,
+  'searchListingsByArea' : ActorMethod<
+    [string],
+    Array<ExtendedPropertyListing>
+  >,
+  'searchListingsByMaxRent' : ActorMethod<
+    [bigint],
+    Array<ExtendedPropertyListing>
+  >,
+  'searchListingsByType' : ActorMethod<
+    [PropertyType],
+    Array<ExtendedPropertyListing>
+  >,
   'searchListingsByTypeAndMaxRent' : ActorMethod<
     [PropertyType, bigint],
-    Array<PropertyListing>
+    Array<ExtendedPropertyListing>
   >,
 }
 export declare const idlService: IDL.ServiceClass;
