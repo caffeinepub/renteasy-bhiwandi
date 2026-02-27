@@ -1,20 +1,20 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  MapPin,
-  IndianRupee,
-  CheckCircle2,
-  XCircle,
-  Phone,
-  MessageCircle,
-  Loader2,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link, useParams } from "@tanstack/react-router";
 import {
-  getPropertyById,
+  ArrowLeft,
+  CheckCircle2,
+  IndianRupee,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Phone,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import {
   type PropertyData,
+  getPropertyById,
 } from "../firebase/firestoreService";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/600x400?text=No+Image";
@@ -23,7 +23,6 @@ export function PropertyDetailPage() {
   const { id } = useParams({ from: "/main/property/$id" });
   const [property, setProperty] = useState<PropertyData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   useEffect(() => {
     getPropertyById(id)
@@ -32,9 +31,7 @@ export function PropertyDetailPage() {
       .finally(() => setIsLoading(false));
   }, [id]);
 
-  const imageUrls =
-    property?.images?.length ? property.images : [PLACEHOLDER_IMAGE];
-  const mainImageUrl = imageUrls[activeImageIdx] ?? PLACEHOLDER_IMAGE;
+  const mainImageUrl = property?.imageUrl || PLACEHOLDER_IMAGE;
 
   if (isLoading) {
     return (
@@ -104,33 +101,6 @@ export function PropertyDetailPage() {
                 )}
               </div>
             </div>
-
-            {/* Thumbnails */}
-            {imageUrls.length > 1 && (
-              <div className="flex gap-2 flex-wrap">
-                {imageUrls.map((url, idx) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => setActiveImageIdx(idx)}
-                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                      idx === activeImageIdx
-                        ? "border-primary ring-2 ring-primary/30"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <img
-                      src={url}
-                      alt={`View ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Property Details */}
@@ -259,36 +229,32 @@ export function PropertyDetailPage() {
             )}
 
             {/* Contact Owner */}
-            {property.contactNumber &&
-              property.contactNumber.trim() !== "" && (
-                <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-4 mt-1">
-                  <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-green-600" />
-                    Contact Owner
-                  </h3>
-                  <div className="flex flex-col gap-2">
-                    <a
-                      href={"tel:" + property.contactNumber}
-                      className="flex items-center justify-center gap-2 w-full rounded-lg bg-green-600 hover:bg-green-700 text-white font-body font-medium text-sm py-2.5 px-4 transition-colors"
-                    >
-                      <Phone className="h-4 w-4" />
-                      Call Owner
-                    </a>
-                    <a
-                      href={
-                        "https://wa.me/91" +
-                        property.contactNumber.replace(/\D/g, "")
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#25D366] hover:bg-[#20b958] text-white font-body font-medium text-sm py-2.5 px-4 transition-colors"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      WhatsApp
-                    </a>
-                  </div>
+            {property.contactNumber && property.contactNumber.trim() !== "" && (
+              <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-4 mt-1">
+                <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-green-600" />
+                  Contact Owner
+                </h3>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href={`tel:${property.contactNumber}`}
+                    className="flex items-center justify-center gap-2 w-full rounded-lg bg-green-600 hover:bg-green-700 text-white font-body font-medium text-sm py-2.5 px-4 transition-colors"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Call Owner
+                  </a>
+                  <a
+                    href={`https://wa.me/91${property.contactNumber.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#25D366] hover:bg-[#20b958] text-white font-body font-medium text-sm py-2.5 px-4 transition-colors"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    WhatsApp
+                  </a>
                 </div>
-              )}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -17,10 +17,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { addProperty } from "../firebase/firestoreService";
-import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
+import {
+  type PropertyData,
+  updateProperty,
+} from "../firebase/firestoreService";
 
 const AMENITY_OPTIONS = [
   "Parking",
@@ -34,17 +36,16 @@ const AMENITY_OPTIONS = [
   "Swimming Pool",
 ];
 
-const PLACEHOLDER_IMAGE = "https://placehold.co/600x400?text=No+Image";
-
-interface AddPropertyModalProps {
+interface EditPropertyModalProps {
   open: boolean;
+  property: PropertyData;
   onClose: () => void;
 }
 
 interface FormState {
   title: string;
   description: string;
-  address: string;
+  area: string;
   ownerPhone: string;
   monthlyRent: string;
   propertyType: string;
@@ -58,44 +59,27 @@ interface FormState {
   imageUrl: string;
 }
 
-const INITIAL_FORM: FormState = {
-  title: "",
-  description: "",
-  address: "",
-  ownerPhone: "",
-  monthlyRent: "",
-  propertyType: "",
-  bedrooms: "1",
-  bathrooms: "1",
-  amenities: [],
-  deposit: "",
-  bhkType: "",
-  landmark: "",
-  bestFor: "",
-  imageUrl: "",
-};
-
 interface FormErrors {
   title?: string;
-  address?: string;
   area?: string;
   monthlyRent?: string;
-  propertyType?: string;
-  phone?: string;
-  contactNumber?: string;
   deposit?: string;
+  contactNumber?: string;
   imageUrl?: string;
+  propertyType?: string;
 }
 
 function validateForm(form: FormState): FormErrors {
   const errors: FormErrors = {};
+
   if (!form.title.trim() || form.title.trim().length < 5) {
     errors.title = "Title must be at least 5 characters.";
   }
-  if (!form.address.trim() || form.address.trim().length < 3) {
-    errors.address = "Area is required (min 3 characters).";
-    errors.area = "Area is required (min 3 characters).";
+
+  if (!form.area.trim() || form.area.trim().length < 3) {
+    errors.area = "Area is required.";
   }
+
   if (
     !form.monthlyRent ||
     Number.isNaN(Number(form.monthlyRent)) ||
@@ -103,30 +87,72 @@ function validateForm(form: FormState): FormErrors {
   ) {
     errors.monthlyRent = "Rent must be a positive number.";
   }
-  if (!form.propertyType) {
-    errors.propertyType = "Please select a property type.";
-  }
-  if (!form.ownerPhone.trim() || !/^\d{10}$/.test(form.ownerPhone.trim())) {
-    errors.contactNumber = "Contact number is required (10 digits).";
-    errors.phone = "Contact number is required (10 digits).";
-  }
+
   if (
     form.deposit.trim() &&
     (Number.isNaN(Number(form.deposit)) || Number(form.deposit) < 0)
   ) {
     errors.deposit = "Deposit must be 0 or more.";
   }
+
+  if (!form.ownerPhone.trim() || !/^\d{10}$/.test(form.ownerPhone.trim())) {
+    errors.contactNumber = "Contact number is required (10 digits).";
+  }
+
   if (form.imageUrl.trim() && !/^https?:\/\//i.test(form.imageUrl.trim())) {
     errors.imageUrl = "Enter a valid URL (starting with http:// or https://).";
   }
+
   return errors;
 }
 
-export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
-  const { currentUser } = useFirebaseAuth();
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+export function EditPropertyModal({
+  open,
+  property,
+  onClose,
+}: EditPropertyModalProps) {
+  const [form, setForm] = useState<FormState>({
+    title: "",
+    description: "",
+    area: "",
+    ownerPhone: "",
+    monthlyRent: "",
+    propertyType: "",
+    bedrooms: "1",
+    bathrooms: "1",
+    amenities: [],
+    deposit: "",
+    bhkType: "",
+    landmark: "",
+    bestFor: "",
+    imageUrl: "",
+  });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pre-fill form whenever property changes
+  useEffect(() => {
+    if (property) {
+      setForm({
+        title: property.title ?? "",
+        description: property.description ?? "",
+        area: property.area ?? property.address ?? "",
+        ownerPhone: property.contactNumber ?? "",
+        monthlyRent: property.rent != null ? String(property.rent) : "",
+        propertyType: property.propertyType ?? "",
+        bedrooms: property.bedrooms != null ? String(property.bedrooms) : "1",
+        bathrooms:
+          property.bathrooms != null ? String(property.bathrooms) : "1",
+        amenities: property.amenities ?? [],
+        deposit: property.deposit != null ? String(property.deposit) : "",
+        bhkType: property.bhkType ?? "",
+        landmark: property.landmark ?? "",
+        bestFor: property.bestFor ?? "",
+        imageUrl: property.imageUrl ?? "",
+      });
+      setErrors({});
+    }
+  }, [property]);
 
   const toggleAmenity = (amenity: string) => {
     setForm((prev) => ({
@@ -146,20 +172,18 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
     }
     setErrors({});
 
-    if (!currentUser) {
-      toast.error("You must be logged in to add a property.");
+    if (!property.id) {
+      toast.error("Cannot update property: missing ID.");
       return;
     }
 
     try {
       setIsSubmitting(true);
-
-      // Save property to Firestore
-      await addProperty({
+      await updateProperty(property.id, {
         title: form.title.trim(),
         description: form.description.trim(),
-        area: form.address.trim(),
-        address: form.address.trim(),
+        area: form.area.trim(),
+        address: form.area.trim(),
         contactNumber: form.ownerPhone.trim(),
         rent: Number(form.monthlyRent),
         deposit: form.deposit ? Number(form.deposit) : 0,
@@ -168,17 +192,14 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
         landmark: form.landmark.trim(),
         bestFor: form.bestFor,
         amenities: form.amenities,
-        imageUrl: form.imageUrl.trim() || PLACEHOLDER_IMAGE,
-        ownerId: currentUser.uid,
+        imageUrl: form.imageUrl.trim(),
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
-        available: true,
       });
-
-      toast.success("Property listed successfully!");
-      handleClose();
+      toast.success("Property updated successfully!");
+      onClose();
     } catch (err) {
-      toast.error("Failed to create listing. Please try again.");
+      toast.error("Failed to update listing. Please try again.");
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -186,7 +207,6 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
   };
 
   const handleClose = () => {
-    setForm(INITIAL_FORM);
     setErrors({});
     onClose();
   };
@@ -196,18 +216,21 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
-            Add New Property
+            Edit Property
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-2">
           {/* Title */}
           <div className="space-y-1.5">
-            <Label htmlFor="title" className="font-body font-medium text-sm">
+            <Label
+              htmlFor="edit-title"
+              className="font-body font-medium text-sm"
+            >
               Property Title <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="title"
+              id="edit-title"
               value={form.title}
               onChange={(e) => {
                 setForm({ ...form, title: e.target.value });
@@ -227,13 +250,13 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
           {/* Description */}
           <div className="space-y-1.5">
             <Label
-              htmlFor="description"
+              htmlFor="edit-description"
               className="font-body font-medium text-sm"
             >
               Description
             </Label>
             <Textarea
-              id="description"
+              id="edit-description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
@@ -244,29 +267,28 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
             />
           </div>
 
-          {/* Address */}
+          {/* Area */}
           <div className="space-y-1.5">
-            <Label htmlFor="address" className="font-body font-medium text-sm">
-              Address <span className="text-destructive">*</span>
+            <Label
+              htmlFor="edit-area"
+              className="font-body font-medium text-sm"
+            >
+              Area <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="address"
-              value={form.address}
+              id="edit-area"
+              value={form.area}
               onChange={(e) => {
-                setForm({ ...form, address: e.target.value });
-                if (errors.address || errors.area)
-                  setErrors((prev) => ({
-                    ...prev,
-                    address: undefined,
-                    area: undefined,
-                  }));
+                setForm({ ...form, area: e.target.value });
+                if (errors.area)
+                  setErrors((prev) => ({ ...prev, area: undefined }));
               }}
-              placeholder="Full address in Bhiwandi"
-              className={`font-body ${errors.address || errors.area ? "border-destructive focus-visible:ring-destructive" : ""}`}
+              placeholder="Area or locality in Bhiwandi"
+              className={`font-body ${errors.area ? "border-destructive focus-visible:ring-destructive" : ""}`}
             />
-            {(errors.address || errors.area) && (
+            {errors.area && (
               <p className="text-destructive text-xs font-body mt-1">
-                {errors.address || errors.area}
+                {errors.area}
               </p>
             )}
           </div>
@@ -274,31 +296,30 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
           {/* Owner Phone */}
           <div className="space-y-1.5">
             <Label
-              htmlFor="ownerPhone"
+              htmlFor="edit-ownerPhone"
               className="font-body font-medium text-sm"
             >
               Owner Phone Number <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="ownerPhone"
+              id="edit-ownerPhone"
               type="tel"
               value={form.ownerPhone}
               onChange={(e) => {
                 setForm({ ...form, ownerPhone: e.target.value });
-                if (errors.contactNumber || errors.phone)
+                if (errors.contactNumber)
                   setErrors((prev) => ({
                     ...prev,
-                    phone: undefined,
                     contactNumber: undefined,
                   }));
               }}
               placeholder="10-digit mobile number"
               maxLength={10}
-              className={`font-body ${errors.contactNumber || errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}`}
+              className={`font-body ${errors.contactNumber ? "border-destructive focus-visible:ring-destructive" : ""}`}
             />
-            {(errors.contactNumber || errors.phone) && (
+            {errors.contactNumber && (
               <p className="text-destructive text-xs font-body mt-1">
-                {errors.contactNumber || errors.phone}
+                {errors.contactNumber}
               </p>
             )}
           </div>
@@ -306,18 +327,24 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
           {/* Rent + Type row */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="rent" className="font-body font-medium text-sm">
+              <Label
+                htmlFor="edit-rent"
+                className="font-body font-medium text-sm"
+              >
                 Monthly Rent (₹) <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="rent"
+                id="edit-rent"
                 type="number"
                 min="0"
                 value={form.monthlyRent}
                 onChange={(e) => {
                   setForm({ ...form, monthlyRent: e.target.value });
                   if (errors.monthlyRent)
-                    setErrors((prev) => ({ ...prev, monthlyRent: undefined }));
+                    setErrors((prev) => ({
+                      ...prev,
+                      monthlyRent: undefined,
+                    }));
                 }}
                 placeholder="e.g. 8000"
                 className={`font-body ${errors.monthlyRent ? "border-destructive focus-visible:ring-destructive" : ""}`}
@@ -367,13 +394,13 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label
-                htmlFor="bedrooms"
+                htmlFor="edit-bedrooms"
                 className="font-body font-medium text-sm"
               >
                 Bedrooms
               </Label>
               <Input
-                id="bedrooms"
+                id="edit-bedrooms"
                 type="number"
                 min="0"
                 max="20"
@@ -384,13 +411,13 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
             </div>
             <div className="space-y-1.5">
               <Label
-                htmlFor="bathrooms"
+                htmlFor="edit-bathrooms"
                 className="font-body font-medium text-sm"
               >
                 Bathrooms
               </Label>
               <Input
-                id="bathrooms"
+                id="edit-bathrooms"
                 type="number"
                 min="0"
                 max="20"
@@ -407,7 +434,7 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label
-                htmlFor="deposit"
+                htmlFor="edit-deposit"
                 className="font-body font-medium text-sm"
               >
                 Deposit (₹)
@@ -416,7 +443,7 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
                 </span>
               </Label>
               <Input
-                id="deposit"
+                id="edit-deposit"
                 type="number"
                 min="0"
                 value={form.deposit}
@@ -436,7 +463,7 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
             </div>
             <div className="space-y-1.5">
               <Label
-                htmlFor="bhkType"
+                htmlFor="edit-bhkType"
                 className="font-body font-medium text-sm"
               >
                 BHK Type
@@ -445,7 +472,7 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
                 </span>
               </Label>
               <Input
-                id="bhkType"
+                id="edit-bhkType"
                 value={form.bhkType}
                 onChange={(e) => setForm({ ...form, bhkType: e.target.value })}
                 placeholder="e.g. 1BHK, 2BHK, 3BHK, Studio"
@@ -458,7 +485,7 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label
-                htmlFor="landmark"
+                htmlFor="edit-landmark"
                 className="font-body font-medium text-sm"
               >
                 Landmark
@@ -467,7 +494,7 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
                 </span>
               </Label>
               <Input
-                id="landmark"
+                id="edit-landmark"
                 value={form.landmark}
                 onChange={(e) => setForm({ ...form, landmark: e.target.value })}
                 placeholder="Nearby landmark"
@@ -503,14 +530,17 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
 
           {/* Image URL */}
           <div className="space-y-1.5">
-            <Label htmlFor="imageUrl" className="font-body font-medium text-sm">
+            <Label
+              htmlFor="edit-imageUrl"
+              className="font-body font-medium text-sm"
+            >
               Property Image URL
               <span className="ml-1 text-xs text-muted-foreground font-normal">
                 (optional)
               </span>
             </Label>
             <Input
-              id="imageUrl"
+              id="edit-imageUrl"
               type="url"
               value={form.imageUrl}
               onChange={(e) => {
@@ -540,13 +570,13 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
                   className="flex items-center gap-2 cursor-pointer group"
                 >
                   <Checkbox
-                    id={`amenity-${amenity}`}
+                    id={`edit-amenity-${amenity}`}
                     checked={form.amenities.includes(amenity)}
                     onCheckedChange={() => toggleAmenity(amenity)}
                     className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
                   <Label
-                    htmlFor={`amenity-${amenity}`}
+                    htmlFor={`edit-amenity-${amenity}`}
                     className="text-sm font-body text-foreground group-hover:text-primary transition-colors cursor-pointer font-normal"
                   >
                     {amenity}
@@ -578,7 +608,7 @@ export function AddPropertyModal({ open, onClose }: AddPropertyModalProps) {
                   Saving...
                 </>
               ) : (
-                "List Property"
+                "Save Changes"
               )}
             </Button>
           </div>

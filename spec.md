@@ -1,58 +1,48 @@
 # RentEasy Bhiwandi
 
 ## Current State
-A full-stack property rental app built on Internet Computer (Motoko backend + React frontend). Auth is via Internet Identity (II), data stored in Motoko canisters, images via a custom blob storage canister. The UI has 4 pages (Browse, PropertyDetail, Dashboard, RoleSelection) with a clean card-based design using Tailwind + shadcn components.
 
-Data flow:
-- Authentication: `useInternetIdentity` (II/AuthClient)
-- Backend calls: `useActor` → Motoko actor via `@dfinity` agents
-- Image upload/fetch: `useBlobStorage` + `useStorageConfig` → custom StorageClient
-- Queries/mutations: `useQueries.ts` wrapping actor calls in React Query
+Full-stack Firebase-integrated rental app. Frontend: React + TypeScript + TailwindCSS. Backend: Motoko (IC). Firebase Auth (email/password), Firestore (users + properties collections), Firebase Storage removed (imageUrl string field only).
+
+Key files:
+- `src/firebase/firebaseConfig.ts` — Firebase init with real credentials
+- `src/firebase/firebaseAuth.ts` — register, login, logout, subscribeToAuthState
+- `src/firebase/firestoreService.ts` — addProperty, getAllProperties, getPropertyById, getPropertiesByOwner, deleteProperty, searchProperties, createUserProfile, getUserProfile
+- `src/hooks/useFirebaseAuth.tsx` — context with currentUser, userProfile, loginWithEmail, registerWithEmail, logout
+- `src/components/AddPropertyModal.tsx` — add property form with basic validation
+- `src/pages/DashboardPage.tsx` — owner dashboard with stats cards (total listings, available count, total rent potential)
+- `src/pages/LoginPage.tsx` — email/password login
+- `src/pages/RegisterPage.tsx` — register with role selection (owner/renter)
+- `src/pages/BrowsePage.tsx` — property listing with area/rent filter
+- `src/pages/PropertyDetailPage.tsx` — property detail with Call/WhatsApp buttons
 
 ## Requested Changes (Diff)
 
 ### Add
-- `src/firebase/firebaseConfig.ts` — Firebase app init (v9 modular SDK), clear setup comment block at top
-- `src/firebase/firebaseAuth.ts` — Email/password register, login, logout functions + `onAuthStateChanged` listener wrapper
-- `src/firebase/firestoreService.ts` — CRUD for `users` and `properties` Firestore collections; search/filter queries using composite Firestore queries
-- `src/firebase/storageService.ts` — Upload up to 5 images to Firebase Storage, get download URLs, delete images by URL when property is deleted
-- `src/hooks/useFirebaseAuth.ts` — React context + hook exposing `currentUser`, `userProfile` (name+role from Firestore), `loginWithEmail`, `registerWithEmail`, `logout`, `isLoading`
-- `src/pages/LoginPage.tsx` — Email/password login form (reuse existing UI style)
-- `src/pages/RegisterPage.tsx` — Register form: name, email, password, role selector (owner/renter)
-- Routes `/login` and `/register` in `App.tsx`
+1. **Edit Property Modal** (`src/components/EditPropertyModal.tsx`): New modal component that pre-fills all property fields (title, rent, deposit, area, bhkType, landmark, description, bestFor, contactNumber, imageUrl). Calls `updateProperty()` Firestore function. Only shown to the property owner.
+2. **updateProperty function** in `firestoreService.ts`: Uses `updateDoc` with the property's Firestore doc ID.
+3. **Dashboard Analytics Section** in `DashboardPage.tsx`: Below existing stats cards, add an "Analytics" section showing: (a) overall average rent, (b) table/blocks of properties grouped by area with count and average rent per area, (c) simple visual bar representation (CSS width % bars, no chart library).
+4. **Email Verification** in `firebaseAuth.ts`: After `createUserWithEmailAndPassword`, call `sendEmailVerification(cred.user)`. In `loginUser`, after sign-in check `user.emailVerified` — if false, call `signOut`, throw error with message "email-not-verified".
+5. **Enhanced Form Validation** in `AddPropertyModal.tsx` and `EditPropertyModal.tsx`: Validate rent (numeric, positive), deposit (numeric, non-negative), area (required, min 3 chars), contactNumber (required, 10 digits), imageUrl (valid URL format if provided). Show inline red error messages.
+6. **README.md**: Create/update with security documentation section covering Firestore rules, role-based logic, auth state management, serverless architecture rationale.
 
 ### Modify
-- `App.tsx` — Replace `useInternetIdentity` auth with `useFirebaseAuth`; replace role/guard logic with Firebase user role; add `/login`, `/register` routes; keep existing page components and routing structure
-- `Header.tsx` — Use `useFirebaseAuth` instead of `useInternetIdentity`; show user name from Firestore profile; keep all existing nav and styling
-- `BrowsePage.tsx` — Replace `useGetAllListings` / `useGetTotalListingsCount` with Firebase Firestore queries (`getDocs` from `properties` collection); keep all existing UI, filters, and layout
-- `PropertyDetailPage.tsx` — Replace `useGetListingById` with Firestore `getDoc`; display Firebase Storage image URLs directly; keep all existing UI
-- `DashboardPage.tsx` — Replace `useGetAllListings` / `useDeleteListingMutation` with Firestore queries filtered by `ownerId == currentUser.uid`; delete images from Storage on property delete; keep all existing UI
-- `RoleSelectionPage.tsx` — Replace `useAssignRoleMutation` / `useInternetIdentity` with `useFirebaseAuth` register-role flow; save role to Firestore `users` collection
-- `AddPropertyModal.tsx` — Replace `useBlobStorage` / `useCreateListingMutation` with Firebase Storage upload + Firestore `addDoc`; keep all existing form UI and validation
-- `package.json` (frontend) — Add `firebase` dependency
-- `main.tsx` — Wrap app in `FirebaseAuthProvider` instead of `InternetIdentityProvider`
+1. **`firestoreService.ts`**: Add `updateProperty(id: string, data: Partial<PropertyData>): Promise<void>` using `updateDoc`.
+2. **`DashboardPage.tsx`**: Add Edit button alongside each property's Delete/View buttons. Add analytics section between stats cards and the properties list. Wire Edit button to open `EditPropertyModal` with the selected property.
+3. **`RegisterPage.tsx`**: After successful registration, do NOT navigate immediately. Show a success state: "Verification email sent! Please check your inbox and verify your email before logging in." Show a "Go to Login" link. Do not auto-navigate to dashboard.
+4. **`LoginPage.tsx`**: Handle `email-not-verified` error code — display: "Please verify your email before logging in."
+5. **`AddPropertyModal.tsx`**: Strengthen existing validation — add area required check (currently maps `address` to `area`), make contactNumber required with 10-digit validation, add URL format check for imageUrl if provided.
 
 ### Remove
-- Dependency on `useInternetIdentity` from auth flow (file kept but no longer used as primary auth)
-- Dependency on `useActor` / Motoko actor for data operations (file kept, backend still exists)
-- Dependency on `useBlobStorage` / `useStorageConfig` for image operations (replaced by Firebase Storage)
-- Dependency on `useQueries.ts` hooks that call Motoko actor (replaced by Firebase direct calls)
+- Nothing removed. All existing functionality preserved.
 
 ## Implementation Plan
 
-1. Add `firebase` npm package to frontend `package.json`
-2. Create `src/firebase/firebaseConfig.ts` with setup instructions comment block and Firebase app initialization using placeholder config keys (user will replace with their own)
-3. Create `src/firebase/firebaseAuth.ts` — `registerUser(name, email, password, role)`, `loginUser(email, password)`, `logoutUser()`, `subscribeToAuthState(callback)` using Firebase Auth v9 modular SDK
-4. Create `src/firebase/firestoreService.ts` — `getUserProfile(uid)`, `createUserProfile(uid, data)`, `addProperty(data)`, `getAllProperties()`, `getPropertyById(id)`, `getPropertiesByOwner(uid)`, `deleteProperty(id)`, `searchProperties(area, minRent, maxRent)` using Firestore v9
-5. Create `src/firebase/storageService.ts` — `uploadImages(files, uid)` returns array of download URLs, `deleteImageByUrl(url)` removes from Storage
-6. Create `src/hooks/useFirebaseAuth.ts` — React context provider + hook with `currentUser`, `userProfile`, `loginWithEmail`, `registerWithEmail`, `logout`, `loading` state
-7. Create `src/pages/LoginPage.tsx` — Email/password login form matching existing design
-8. Create `src/pages/RegisterPage.tsx` — Register form with name, email, password, role selection matching existing design
-9. Update `App.tsx` — Replace II auth logic with `useFirebaseAuth`, add login/register routes, update `DashboardGuard` to use Firebase user role
-10. Update `Header.tsx` — Use `useFirebaseAuth` hook
-11. Update `BrowsePage.tsx` — Replace all ICP hooks with direct Firebase calls using `useEffect`/`useState`
-12. Update `PropertyDetailPage.tsx` — Replace ICP hooks with Firestore `getDoc`
-13. Update `DashboardPage.tsx` — Replace ICP hooks with Firebase owner-filtered queries and Storage delete
-14. Update `RoleSelectionPage.tsx` — Use `useFirebaseAuth` for role assignment to Firestore
-15. Update `AddPropertyModal.tsx` — Replace blob storage with Firebase Storage upload + Firestore `addDoc`
-16. Update `main.tsx` — Wrap with `FirebaseAuthProvider`
+1. **`firestoreService.ts`**: Import `updateDoc` from firebase/firestore. Add `updateProperty(id, data)` function.
+2. **`firebaseAuth.ts`**: Import `sendEmailVerification` and `signOut`. In `registerUser`, after creating account call `sendEmailVerification`. In `loginUser`, after sign-in check `cred.user.emailVerified`; if false, `await signOut(auth)` then throw `new Error("email-not-verified")`.
+3. **`EditPropertyModal.tsx`**: New component accepting `property: PropertyData` and `onClose: () => void`. Pre-fill form state from property. On submit call `updateProperty`. Include full validation matching AddPropertyModal but with area and contactNumber required.
+4. **`AddPropertyModal.tsx`**: Tighten validation — area (address) required min 3 chars, contactNumber required 10 digits, imageUrl URL format check (if non-empty).
+5. **`DashboardPage.tsx`**: Import `EditPropertyModal`. Add `editProperty: PropertyData | null` state and `editModalOpen` state. Add Edit button per property row. After stats cards, add `<AnalyticsSection properties={myProperties} />` inline or as a sub-component that computes: overall avg rent, group by area (count + avg rent), CSS bar chart.
+6. **`RegisterPage.tsx`**: After successful `registerWithEmail`, set a local `verificationSent` state to true. Show verification pending UI instead of navigating.
+7. **`LoginPage.tsx`**: In catch block, check for `email-not-verified` in error message, show specific message.
+8. **`README.md`**: Add security documentation section.

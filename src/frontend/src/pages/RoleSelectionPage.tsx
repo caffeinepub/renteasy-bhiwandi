@@ -1,9 +1,9 @@
+import { Building2, CheckCircle2, Loader2, Users } from "lucide-react";
 import { useState } from "react";
-import { Building2, Users, Loader2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import { UserRole } from "../backend.d";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useAssignRoleMutation } from "../hooks/useQueries";
-import { UserRole } from "../backend.d";
-import { toast } from "sonner";
 
 interface RoleSelectionPageProps {
   onRoleSelected: (role: "owner" | "renter") => void;
@@ -12,7 +12,9 @@ interface RoleSelectionPageProps {
 export function RoleSelectionPage({ onRoleSelected }: RoleSelectionPageProps) {
   // eslint-disable-next-line custom/require-internet-identity-provider
   const { identity } = useInternetIdentity();
-  const [selectedRole, setSelectedRole] = useState<"owner" | "renter" | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"owner" | "renter" | null>(
+    null,
+  );
   const assignRole = useAssignRoleMutation();
 
   const handleSelect = async (role: "owner" | "renter") => {
@@ -39,7 +41,8 @@ export function RoleSelectionPage({ onRoleSelected }: RoleSelectionPageProps) {
     <div
       className="min-h-screen bg-background flex items-center justify-center px-4"
       style={{
-        backgroundImage: "radial-gradient(oklch(var(--border)) 1px, transparent 1px)",
+        backgroundImage:
+          "radial-gradient(oklch(var(--border)) 1px, transparent 1px)",
         backgroundSize: "24px 24px",
       }}
     >
@@ -75,11 +78,13 @@ export function RoleSelectionPage({ onRoleSelected }: RoleSelectionPageProps) {
             } disabled:cursor-not-allowed`}
           >
             <div className="flex flex-col items-start gap-4">
-              <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${
-                selectedRole === "owner" && isLoading
-                  ? "hero-gradient"
-                  : "bg-primary/10 group-hover:bg-primary/20"
-              }`}>
+              <div
+                className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${
+                  selectedRole === "owner" && isLoading
+                    ? "hero-gradient"
+                    : "bg-primary/10 group-hover:bg-primary/20"
+                }`}
+              >
                 {selectedRole === "owner" && isLoading ? (
                   <Loader2 className="h-7 w-7 text-white animate-spin" />
                 ) : (
@@ -91,11 +96,19 @@ export function RoleSelectionPage({ onRoleSelected }: RoleSelectionPageProps) {
                   I'm a Property Owner
                 </h3>
                 <p className="font-body text-muted-foreground text-sm leading-relaxed mb-4">
-                  List your properties, manage tenants, and track your rental income.
+                  List your properties, manage tenants, and track your rental
+                  income.
                 </p>
                 <ul className="space-y-1.5">
-                  {["List unlimited properties", "Manage tenants easily", "Track rental income"].map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-xs text-muted-foreground font-body">
+                  {[
+                    "List unlimited properties",
+                    "Manage tenants easily",
+                    "Track rental income",
+                  ].map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-center gap-2 text-xs text-muted-foreground font-body"
+                    >
                       <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
                       {item}
                     </li>
@@ -120,11 +133,13 @@ export function RoleSelectionPage({ onRoleSelected }: RoleSelectionPageProps) {
             } disabled:cursor-not-allowed`}
           >
             <div className="flex flex-col items-start gap-4">
-              <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${
-                selectedRole === "renter" && isLoading
-                  ? "bg-accent"
-                  : "bg-accent/10 group-hover:bg-accent/20"
-              }`}>
+              <div
+                className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${
+                  selectedRole === "renter" && isLoading
+                    ? "bg-accent"
+                    : "bg-accent/10 group-hover:bg-accent/20"
+                }`}
+              >
                 {selectedRole === "renter" && isLoading ? (
                   <Loader2 className="h-7 w-7 text-white animate-spin" />
                 ) : (
@@ -136,11 +151,19 @@ export function RoleSelectionPage({ onRoleSelected }: RoleSelectionPageProps) {
                   I'm a Renter
                 </h3>
                 <p className="font-body text-muted-foreground text-sm leading-relaxed mb-4">
-                  Browse available properties, filter by your needs, and find your perfect home.
+                  Browse available properties, filter by your needs, and find
+                  your perfect home.
                 </p>
                 <ul className="space-y-1.5">
-                  {["Browse verified listings", "Filter by budget & area", "Contact owners directly"].map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-xs text-muted-foreground font-body">
+                  {[
+                    "Browse verified listings",
+                    "Filter by budget & area",
+                    "Contact owners directly",
+                  ].map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-center gap-2 text-xs text-muted-foreground font-body"
+                    >
                       <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
                       {item}
                     </li>

@@ -1,10 +1,11 @@
 import {
+  type Unsubscribe,
+  type User,
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  type User,
-  type Unsubscribe,
 } from "firebase/auth";
 import { auth } from "./firebaseConfig";
 import { createUserProfile } from "./firestoreService";
@@ -13,7 +14,7 @@ export async function registerUser(
   name: string,
   email: string,
   password: string,
-  role: "owner" | "renter"
+  role: "owner" | "renter",
 ): Promise<User> {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await createUserProfile(cred.user.uid, {
@@ -23,11 +24,19 @@ export async function registerUser(
     role,
     createdAt: new Date().toISOString(),
   });
+  await sendEmailVerification(cred.user);
   return cred.user;
 }
 
-export async function loginUser(email: string, password: string): Promise<User> {
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<User> {
   const cred = await signInWithEmailAndPassword(auth, email, password);
+  if (!cred.user.emailVerified) {
+    await signOut(auth);
+    throw new Error("email-not-verified");
+  }
   return cred.user;
 }
 
@@ -36,7 +45,7 @@ export async function logoutUser(): Promise<void> {
 }
 
 export function subscribeToAuthState(
-  callback: (user: User | null) => void
+  callback: (user: User | null) => void,
 ): Unsubscribe {
   return onAuthStateChanged(auth, callback);
 }

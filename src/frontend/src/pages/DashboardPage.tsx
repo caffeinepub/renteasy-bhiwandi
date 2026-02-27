@@ -1,27 +1,29 @@
-import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import {
-  Plus,
+  BarChart2,
   Building2,
-  IndianRupee,
-  Trash2,
-  MapPin,
-  TrendingUp,
   Home,
-  Sparkles,
+  IndianRupee,
   Loader2,
+  MapPin,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+  TrendingUp,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AddPropertyModal } from "../components/AddPropertyModal";
-import {
-  getPropertiesByOwner,
-  deleteProperty,
-  type PropertyData,
-} from "../firebase/firestoreService";
-import { deleteImageByUrl } from "../firebase/storageService";
-import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AddPropertyModal } from "../components/AddPropertyModal";
+import { EditPropertyModal } from "../components/EditPropertyModal";
+import {
+  type PropertyData,
+  deleteProperty,
+  getPropertiesByOwner,
+} from "../firebase/firestoreService";
+import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/600x400?text=No+Image";
 
@@ -31,6 +33,7 @@ export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editProperty, setEditProperty] = useState<PropertyData | null>(null);
 
   const loadProperties = () => {
     if (!currentUser) return;
@@ -52,23 +55,41 @@ export function DashboardPage() {
 
   const totalRent = myProperties.reduce((sum, p) => sum + (p.rent || 0), 0);
   const availableCount = myProperties.filter(
-    (p) => p.available !== false
+    (p) => p.available !== false,
   ).length;
+
+  // Analytics: overall avg rent
+  const overallAvgRent = myProperties.length
+    ? Math.round(
+        myProperties.reduce((s, p) => s + (p.rent || 0), 0) /
+          myProperties.length,
+      )
+    : 0;
+
+  // Analytics: group by area
+  const areaMap = new Map<string, PropertyData[]>();
+  for (const p of myProperties) {
+    const key = p.area || p.address || "Unknown";
+    if (!areaMap.has(key)) areaMap.set(key, []);
+    areaMap.get(key)!.push(p);
+  }
+  const areaGroups = Array.from(areaMap.entries()).map(([area, props]) => ({
+    area,
+    count: props.length,
+    avgRent: Math.round(
+      props.reduce((s, p) => s + (p.rent || 0), 0) / props.length,
+    ),
+  }));
+  const maxAvgRent = Math.max(...areaGroups.map((g) => g.avgRent), 1);
 
   const handleDelete = async (property: PropertyData) => {
     if (!property.id) return;
     const confirmed = window.confirm(
-      "Are you sure you want to delete this property? This cannot be undone."
+      "Are you sure you want to delete this property? This cannot be undone.",
     );
     if (!confirmed) return;
     setDeletingId(property.id);
     try {
-      // Delete images from Storage first
-      if (property.images?.length) {
-        await Promise.allSettled(
-          property.images.map((url) => deleteImageByUrl(url))
-        );
-      }
       await deleteProperty(property.id);
       setMyProperties((prev) => prev.filter((p) => p.id !== property.id));
       toast.success("Property deleted successfully!");
@@ -161,6 +182,66 @@ export function DashboardPage() {
           </div>
         </div>
 
+        {/* Analytics Section */}
+        {myProperties.length > 0 && (
+          <div className="card-elevated p-6 rounded-xl mb-8 animate-fade-in-up stagger-2">
+            <div className="flex items-center gap-2 mb-5">
+              <BarChart2 className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-base font-semibold text-foreground">
+                Analytics
+              </h2>
+            </div>
+
+            {/* Overall avg rent */}
+            <div className="flex items-center gap-3 mb-5 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <IndianRupee className="h-4 w-4 text-primary shrink-0" />
+              <div>
+                <p className="font-body text-xs text-muted-foreground">
+                  Overall Average Rent
+                </p>
+                <p className="font-display font-semibold text-lg text-foreground">
+                  ₹{overallAvgRent.toLocaleString("en-IN")}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    /mo
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Area breakdown */}
+            <p className="font-body text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+              Properties by Area
+            </p>
+            <div className="space-y-3">
+              {areaGroups.map((g) => (
+                <div key={g.area}>
+                  <div className="flex items-center justify-between text-xs font-body mb-1">
+                    <span className="text-foreground font-medium truncate max-w-[140px]">
+                      {g.area}
+                    </span>
+                    <div className="flex gap-3 text-muted-foreground shrink-0">
+                      <span>
+                        {g.count} {g.count === 1 ? "property" : "properties"}
+                      </span>
+                      <span className="text-primary font-medium">
+                        avg ₹{g.avgRent.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full hero-gradient rounded-full transition-all"
+                      style={{
+                        width: `${Math.round((g.avgRent / maxAvgRent) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Listings section */}
         <h2 className="font-display text-lg font-semibold mb-4 text-foreground animate-fade-in-up stagger-2">
           Your Properties
@@ -199,7 +280,7 @@ export function DashboardPage() {
                 {/* Image */}
                 <div className="w-full sm:w-32 h-40 sm:h-24 rounded-xl overflow-hidden shrink-0">
                   <img
-                    src={property.images?.[0] || PLACEHOLDER_IMAGE}
+                    src={property.imageUrl || PLACEHOLDER_IMAGE}
                     alt={property.title}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     onError={(e) => {
@@ -275,6 +356,15 @@ export function DashboardPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setEditProperty(property)}
+                    className="font-body text-xs h-8 px-3"
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleDelete(property)}
                     disabled={deletingId === property.id}
                     className="font-body text-xs h-8 px-3 text-destructive hover:text-destructive"
@@ -302,6 +392,17 @@ export function DashboardPage() {
           loadProperties();
         }}
       />
+
+      {editProperty && (
+        <EditPropertyModal
+          open={!!editProperty}
+          property={editProperty}
+          onClose={() => {
+            setEditProperty(null);
+            loadProperties();
+          }}
+        />
+      )}
     </main>
   );
 }

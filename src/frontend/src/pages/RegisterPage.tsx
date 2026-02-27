@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, Loader2, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
+import { Link } from "@tanstack/react-router";
+import { Building2, Loader2, Lock, Mail, User, Users } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
 
 export function RegisterPage() {
   const { registerWithEmail } = useFirebaseAuth();
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"owner" | "renter" | "">("");
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -54,10 +54,10 @@ export function RegisterPage() {
         name.trim(),
         email.trim(),
         password,
-        role as "owner" | "renter"
+        role as "owner" | "renter",
       );
-      toast.success(`Welcome! You're registered as a ${role}.`);
-      navigate({ to: role === "owner" ? "/dashboard" : "/" });
+      setVerificationSent(true);
+      toast.success("Verification email sent! Please check your inbox.");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registration failed";
       if (msg.includes("email-already-in-use")) {
@@ -69,6 +69,45 @@ export function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  if (verificationSent) {
+    return (
+      <div
+        className="min-h-screen bg-background flex items-center justify-center px-4 py-12"
+        style={{
+          backgroundImage:
+            "radial-gradient(oklch(var(--border)) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      >
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-accent/5 blur-3xl" />
+        </div>
+
+        <div className="relative w-full max-w-lg">
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-sm animate-fade-in-up text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-green-100 mb-5">
+              <Mail className="h-7 w-7 text-green-600" />
+            </div>
+            <h2 className="font-display text-2xl font-semibold text-foreground mb-2">
+              Check your email
+            </h2>
+            <p className="font-body text-muted-foreground mb-6">
+              We sent a verification link to{" "}
+              <strong className="text-foreground">{email}</strong>. Please
+              verify your email before logging in.
+            </p>
+            <Link to="/login">
+              <Button className="hero-gradient text-white border-0 hover:opacity-90 font-body font-medium w-full h-11">
+                Go to Login
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -188,9 +227,7 @@ export function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-body font-medium text-sm">
-                I am a...
-              </Label>
+              <Label className="font-body font-medium text-sm">I am a...</Label>
               {errors.role && (
                 <p className="text-destructive text-xs font-body">
                   {errors.role}

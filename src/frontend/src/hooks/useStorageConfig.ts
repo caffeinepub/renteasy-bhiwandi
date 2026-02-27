@@ -13,7 +13,7 @@ export function useStorageConfig() {
         projectId: config.project_id,
       };
     },
-    staleTime: Infinity,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   const getImageUrl = (blobId: string): string => {
@@ -22,7 +22,7 @@ export function useStorageConfig() {
       blobId,
       data.storageGatewayUrl,
       data.backendCanisterId,
-      data.projectId
+      data.projectId,
     );
   };
 

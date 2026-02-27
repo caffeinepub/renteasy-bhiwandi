@@ -1,3 +1,4 @@
+import type { User } from "firebase/auth";
 import {
   type ReactNode,
   createContext,
@@ -5,16 +6,15 @@ import {
   useEffect,
   useState,
 } from "react";
-import type { User } from "firebase/auth";
 import {
-  subscribeToAuthState,
   loginUser,
-  registerUser,
   logoutUser,
+  registerUser,
+  subscribeToAuthState,
 } from "../firebase/firebaseAuth";
 import {
-  getUserProfile,
   type UserProfileData,
+  getUserProfile,
 } from "../firebase/firestoreService";
 
 interface FirebaseAuthContextType {
@@ -26,13 +26,13 @@ interface FirebaseAuthContextType {
     name: string,
     email: string,
     password: string,
-    role: "owner" | "renter"
+    role: "owner" | "renter",
   ) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const FirebaseAuthContext = createContext<FirebaseAuthContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
@@ -64,7 +64,7 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    role: "owner" | "renter"
+    role: "owner" | "renter",
   ) => {
     const user = await registerUser(name, email, password, role);
     const profile = await getUserProfile(user.uid);

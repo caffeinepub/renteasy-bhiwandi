@@ -1,19 +1,22 @@
-import { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Link } from "@tanstack/react-router";
 import {
-  Search,
-  SlidersHorizontal,
-  Home,
-  LogIn,
   Building2,
   CheckCircle2,
-  MapPin,
+  Home,
   IndianRupee,
+  LogIn,
+  MapPin,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
 import { PropertyCardSkeleton } from "../components/PropertyCardSkeleton";
-import { getAllProperties, type PropertyData } from "../firebase/firestoreService";
+import {
+  type PropertyData,
+  getAllProperties,
+} from "../firebase/firestoreService";
 import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/600x400?text=No+Image";
@@ -39,12 +42,12 @@ export function BrowsePage() {
     let result = properties;
 
     const maxRent = maxRentInput ? Number(maxRentInput) : null;
-    if (maxRent !== null && !isNaN(maxRent)) {
+    if (maxRent !== null && !Number.isNaN(maxRent)) {
       result = result.filter((p) => p.rent <= maxRent);
     }
 
     const minRent = minRentInput ? Number(minRentInput) : null;
-    if (minRent !== null && !isNaN(minRent)) {
+    if (minRent !== null && !Number.isNaN(minRent)) {
       result = result.filter((p) => p.rent >= minRent);
     }
 
@@ -54,7 +57,7 @@ export function BrowsePage() {
         (p) =>
           p.area?.toLowerCase().includes(a) ||
           p.address?.toLowerCase().includes(a) ||
-          p.landmark?.toLowerCase().includes(a)
+          p.landmark?.toLowerCase().includes(a),
       );
     }
 
@@ -64,7 +67,7 @@ export function BrowsePage() {
         (p) =>
           p.title?.toLowerCase().includes(q) ||
           p.area?.toLowerCase().includes(q) ||
-          p.address?.toLowerCase().includes(q)
+          p.address?.toLowerCase().includes(q),
       );
     }
 
@@ -257,7 +260,7 @@ export function BrowsePage() {
             {(["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"] as const).map(
               (k) => (
                 <PropertyCardSkeleton key={k} />
-              )
+              ),
             )}
           </div>
         ) : filteredProperties.length === 0 ? (
@@ -296,7 +299,7 @@ export function BrowsePage() {
               >
                 <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                   <img
-                    src={property.images?.[0] || PLACEHOLDER_IMAGE}
+                    src={property.imageUrl || PLACEHOLDER_IMAGE}
                     alt={property.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     onError={(e) => {

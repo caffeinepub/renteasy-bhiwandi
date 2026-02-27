@@ -25,7 +25,7 @@ export function getBlobUrlSync(
   blobId: string,
   storageGatewayUrl: string,
   backendCanisterId: string,
-  projectId: string
+  projectId: string,
 ): string {
   if (!blobId) return "https://placehold.co/600x400?text=No+Image";
   return `${storageGatewayUrl}/v1/blob/?blob_hash=${encodeURIComponent(blobId)}&owner_id=${encodeURIComponent(backendCanisterId)}&project_id=${encodeURIComponent(projectId)}`;

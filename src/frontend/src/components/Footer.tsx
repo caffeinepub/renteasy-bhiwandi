@@ -1,5 +1,5 @@
-import { Heart, Home } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { Heart, Home } from "lucide-react";
 
 export function Footer() {
   return (
@@ -78,8 +78,7 @@ export function Footer() {
           </div>
           <p className="text-xs text-muted-foreground font-body flex items-center gap-1">
             © 2026. Built with{" "}
-            <Heart className="h-3 w-3 fill-primary text-primary" />
-            {" "}using{" "}
+            <Heart className="h-3 w-3 fill-primary text-primary" /> using{" "}
             <a
               href="https://caffeine.ai"
               target="_blank"

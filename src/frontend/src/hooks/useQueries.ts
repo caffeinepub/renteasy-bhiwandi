@@ -1,8 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Principal } from "@icp-sdk/core/principal";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type ExtendedPropertyListing,
+  type PropertyType,
+  UserRole,
+} from "../backend.d";
 import { useActor } from "./useActor";
 import { useInternetIdentity } from "./useInternetIdentity";
-import { ExtendedPropertyListing, PropertyType, UserRole } from "../backend.d";
-import type { Principal } from "@icp-sdk/core/principal";
 
 export function useGetAllListings() {
   const { actor, isFetching } = useActor();
@@ -54,16 +58,11 @@ export function useSearchByType(propertyType: PropertyType | null) {
 
 export function useSearchByTypeAndMaxRent(
   propertyType: PropertyType | null,
-  maxRent: bigint | null
+  maxRent: bigint | null,
 ) {
   const { actor, isFetching } = useActor();
   return useQuery<ExtendedPropertyListing[]>({
-    queryKey: [
-      "listings",
-      "typeAndRent",
-      propertyType,
-      maxRent?.toString(),
-    ],
+    queryKey: ["listings", "typeAndRent", propertyType, maxRent?.toString()],
     queryFn: async () => {
       if (!actor || propertyType === null || maxRent === null) return [];
       return actor.searchListingsByTypeAndMaxRent(propertyType, maxRent);
@@ -141,7 +140,7 @@ export function useCreateListingMutation() {
         params.deposit,
         params.bhkType,
         params.landmark,
-        params.bestFor
+        params.bestFor,
       );
     },
     onSuccess: () => {
@@ -177,4 +176,3 @@ export function useDeleteListingMutation() {
     },
   });
 }
-

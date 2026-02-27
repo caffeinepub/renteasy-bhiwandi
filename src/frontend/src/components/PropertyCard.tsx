@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
-import { Bed, Bath, MapPin, IndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ExtendedPropertyListing, PropertyType } from "../backend.d";
+import { Link } from "@tanstack/react-router";
+import { Bath, Bed, IndianRupee, MapPin } from "lucide-react";
+import { type ExtendedPropertyListing, PropertyType } from "../backend.d";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/600x400?text=No+Image";
 
@@ -25,7 +25,11 @@ interface PropertyCardProps {
   staggerIndex?: number;
 }
 
-export function PropertyCard({ listing, getImageUrl, staggerIndex = 0 }: PropertyCardProps) {
+export function PropertyCard({
+  listing,
+  getImageUrl,
+  staggerIndex = 0,
+}: PropertyCardProps) {
   const imageUrl =
     listing.imageBlobIds.length > 0
       ? getImageUrl(listing.imageBlobIds[0])
@@ -58,11 +62,17 @@ export function PropertyCard({ listing, getImageUrl, staggerIndex = 0 }: Propert
             {TYPE_LABELS[listing.propertyType]}
           </Badge>
           {listing.available ? (
-            <Badge className="text-xs bg-green-100 text-green-700 border-green-200 font-body font-medium" variant="outline">
+            <Badge
+              className="text-xs bg-green-100 text-green-700 border-green-200 font-body font-medium"
+              variant="outline"
+            >
               Available
             </Badge>
           ) : (
-            <Badge className="text-xs bg-red-100 text-red-700 border-red-200 font-body font-medium" variant="outline">
+            <Badge
+              className="text-xs bg-red-100 text-red-700 border-red-200 font-body font-medium"
+              variant="outline"
+            >
               Rented
             </Badge>
           )}
@@ -81,8 +91,12 @@ export function PropertyCard({ listing, getImageUrl, staggerIndex = 0 }: Propert
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-0.5 text-primary font-semibold font-body">
             <IndianRupee className="h-4 w-4" />
-            <span className="text-xl font-bold">{listing.monthlyRent.toLocaleString("en-IN")}</span>
-            <span className="text-xs text-muted-foreground font-normal ml-0.5">/mo</span>
+            <span className="text-xl font-bold">
+              {listing.monthlyRent.toLocaleString("en-IN")}
+            </span>
+            <span className="text-xs text-muted-foreground font-normal ml-0.5">
+              /mo
+            </span>
           </div>
 
           <div className="flex items-center gap-3 text-muted-foreground text-xs font-body">

@@ -1,18 +1,18 @@
-import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Home,
   LayoutDashboard,
   LogIn,
   LogOut,
   Menu,
-  X,
   UserPlus,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
 
 export function Header() {
   const { currentUser, userProfile, logout } = useFirebaseAuth();

@@ -1,21 +1,21 @@
-import {
-  createRouter,
-  createRoute,
-  createRootRoute,
-  RouterProvider,
-  Outlet,
-  Navigate,
-} from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
-import { Header } from "./components/Header";
+import {
+  Navigate,
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
 import { Footer } from "./components/Footer";
+import { Header } from "./components/Header";
+import { useFirebaseAuth } from "./hooks/useFirebaseAuth";
 import { BrowsePage } from "./pages/BrowsePage";
-import { PropertyDetailPage } from "./pages/PropertyDetailPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { PropertyDetailPage } from "./pages/PropertyDetailPage";
 import { RegisterPage } from "./pages/RegisterPage";
-import { useFirebaseAuth } from "./hooks/useFirebaseAuth";
-import { Loader2 } from "lucide-react";
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 

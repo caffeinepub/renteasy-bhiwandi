@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Loader2, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Building2, Loader2, Lock, Mail } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useFirebaseAuth } from "../hooks/useFirebaseAuth";
 
 export function LoginPage() {
   const { loginWithEmail } = useFirebaseAuth();
@@ -45,7 +45,11 @@ export function LoginPage() {
       navigate({ to: "/" });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Login failed";
-      if (
+      if (msg.includes("email-not-verified")) {
+        setErrors({
+          general: "Please verify your email before logging in.",
+        });
+      } else if (
         msg.includes("user-not-found") ||
         msg.includes("wrong-password") ||
         msg.includes("invalid-credential")

@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { HttpAgent } from "@icp-sdk/core/agent";
+import { useCallback, useState } from "react";
 import { loadConfig } from "../config";
 import { StorageClient } from "../utils/StorageClient";
 import { useInternetIdentity } from "./useInternetIdentity";
-import { HttpAgent } from "@icp-sdk/core/agent";
 
 export function useBlobStorage() {
   const { identity } = useInternetIdentity();
@@ -24,7 +24,7 @@ export function useBlobStorage() {
         config.storage_gateway_url,
         config.backend_canister_id,
         config.project_id,
-        agent
+        agent,
       );
 
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -39,24 +39,27 @@ export function useBlobStorage() {
         setUploading(false);
       }
     },
-    [identity]
+    [identity],
   );
 
-  const getBlobUrl = useCallback(async (blobId: string): Promise<string> => {
-    const config = await loadConfig();
-    const agent = new HttpAgent({
-      identity: identity ?? undefined,
-      host: config.backend_host,
-    });
-    const storageClient = new StorageClient(
-      config.bucket_name,
-      config.storage_gateway_url,
-      config.backend_canister_id,
-      config.project_id,
-      agent
-    );
-    return storageClient.getDirectURL(blobId);
-  }, [identity]);
+  const getBlobUrl = useCallback(
+    async (blobId: string): Promise<string> => {
+      const config = await loadConfig();
+      const agent = new HttpAgent({
+        identity: identity ?? undefined,
+        host: config.backend_host,
+      });
+      const storageClient = new StorageClient(
+        config.bucket_name,
+        config.storage_gateway_url,
+        config.backend_canister_id,
+        config.project_id,
+        agent,
+      );
+      return storageClient.getDirectURL(blobId);
+    },
+    [identity],
+  );
 
   return { uploadFile, getBlobUrl, uploading, uploadProgress };
 }
